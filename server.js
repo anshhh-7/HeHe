@@ -8,17 +8,38 @@ const io = socketIO(server);
 
 const PORT = process.env.PORT || 3000;
 
+// 🔐 ADMIN PASSWORD (change this)
+const ADMIN_PASSWORD = "admin123";
+
 app.use(express.static("public"));
 
+/*
+users = {
+  socketId: { username, role }
+}
+*/
 const users = {};
 
 io.on("connection", (socket) => {
 
-  socket.on("join", (username) => {
-    socket.username = username;
-    users[socket.id] = username;
+  socket.on("join", ({ username, password }) => {
 
-    io.emit("userList", Object.values(users));
+    // 🔐 Admin authentication
+    if (username.toLowerCase() === "admin") {
+      if (password !== ADMIN_PASSWORD) {
+        socket.emit("authError", "Invalid admin password");
+        return;
+      }
+    }
+
+    const role = username.toLowerCase() === "admin" ? "admin" : "user";
+
+    users[socket.id] = { username, role };
+    socket.username = username;
+    socket.role = role;
+
+    io.emit("userList", users);
+
     io.emit("message", {
       user: "System",
       text: `${username} joined the chat`
@@ -40,18 +61,37 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("typing", "");
   });
 
-  socket.on("disconnect", () => {
-    if (socket.username) {
-      delete users[socket.id];
+  // 🔥 ADMIN REMOVES USER
+  socket.on("removeUser", (targetSocketId) => {
+    if (socket.role !== "admin") return;
 
-      io.emit("userList", Object.values(users));
+    const targetUser = users[targetSocketId];
+    if (targetUser) {
+      io.to(targetSocketId).emit("removed");
+      io.sockets.sockets.get(targetSocketId)?.disconnect(true);
+
+      delete users[targetSocketId];
+
+      io.emit("userList", users);
       io.emit("message", {
         user: "System",
-        text: `${socket.username} left the chat`
+        text: `${targetUser.username} was removed by admin`
       });
     }
   });
 
+  socket.on("disconnect", () => {
+    if (users[socket.id]) {
+      const name = users[socket.id].username;
+      delete users[socket.id];
+
+      io.emit("userList", users);
+      io.emit("message", {
+        user: "System",
+        text: `${name} left the chat`
+      });
+    }
+  });
 });
 
 server.listen(PORT, () => {
