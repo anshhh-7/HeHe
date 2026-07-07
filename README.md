@@ -94,13 +94,13 @@ https://hehe-wbhi.onrender.com/
 
 ### Login Page
 
-Add image here:
+
 
 <img width="557" height="419" alt="image" src="https://github.com/user-attachments/assets/15b7a11d-e88c-4fb0-be90-01e65eb60d0c" />
 
 ### Chat Interface
 
-Add image here:
+
 
 <img width="539" height="529" alt="image" src="https://github.com/user-attachments/assets/83c33aca-99d9-47cd-ad20-bee00f436796" />
 
